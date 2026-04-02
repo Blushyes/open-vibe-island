@@ -59,7 +59,7 @@ struct IslandPanelView: View {
     }
 
     private var openedPanelHeight: CGFloat {
-        420
+        500
     }
 
     var body: some View {
@@ -79,7 +79,7 @@ struct IslandPanelView: View {
 
     @ViewBuilder
     private func notchContent(screenWidth: CGFloat) -> some View {
-        let openedWidth = min(screenWidth * 0.4, 480)
+        let openedWidth = min(max(screenWidth * 0.68, 760), screenWidth - 36)
         let closedWidth = closedNotchWidth + expansionWidth + (isPopping ? 18 : 0)
         let currentWidth = isOpened ? openedWidth : closedWidth
         let currentHeight = isOpened ? openedPanelHeight : closedNotchHeight
@@ -103,9 +103,9 @@ struct IslandPanelView: View {
             }
         }
         .frame(width: currentWidth, height: currentHeight, alignment: .top)
-        .padding(.horizontal, isOpened ? 12 : 0)
-        .padding(.bottom, isOpened ? 12 : 0)
-        .background(Color.black)
+        .padding(.horizontal, isOpened ? 14 : 0)
+        .padding(.bottom, isOpened ? 14 : 0)
+        .background(surfaceFill)
         .clipShape(
             NotchShape(
                 topCornerRadius: isOpened ? NotchShape.openedTopRadius : NotchShape.closedTopRadius,
@@ -119,9 +119,17 @@ struct IslandPanelView: View {
                 .frame(height: 1)
                 .padding(.horizontal, isOpened ? NotchShape.openedTopRadius : NotchShape.closedTopRadius)
         }
+        .overlay {
+            NotchShape(
+                topCornerRadius: isOpened ? NotchShape.openedTopRadius : NotchShape.closedTopRadius,
+                bottomCornerRadius: isOpened ? NotchShape.openedBottomRadius : NotchShape.closedBottomRadius
+            )
+            .stroke(Color.white.opacity(isOpened ? 0.07 : 0.04), lineWidth: 1)
+        }
         .shadow(
-            color: (isOpened || isHovering) ? .black.opacity(0.7) : .clear,
-            radius: 6
+            color: (isOpened || isHovering) ? .black.opacity(0.46) : .clear,
+            radius: 16,
+            y: 8
         )
         .animation(isOpened ? openAnimation : closeAnimation, value: model.notchStatus)
         .animation(.smooth, value: hasClosedPresence)
@@ -209,14 +217,14 @@ struct IslandPanelView: View {
             Spacer()
 
             Text("\(model.liveSessionCount) live")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.white.opacity(0.5))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.72))
 
             if model.liveAttentionCount > 0 {
                 Text("\(model.liveAttentionCount) attention")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.orange.opacity(0.9))
-                }
+            }
 
             Button {
                 model.notchClose()
@@ -229,47 +237,7 @@ struct IslandPanelView: View {
             }
             .buttonStyle(.plain)
         }
-    }
-
-    // MARK: - Opened state
-
-    private func openedHeaderRow(width: CGFloat) -> some View {
-        HStack {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.mint)
-                    .frame(width: 8, height: 8)
-
-                Text("Vibe Island")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-
-            Spacer()
-
-            HStack(spacing: 12) {
-                Text("\(model.liveSessionCount) live")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
-
-                if model.liveAttentionCount > 0 {
-                    Text("\(model.liveAttentionCount) attention")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.orange.opacity(0.9))
-                }
-
-                Button {
-                    model.notchClose()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.4))
-                        .frame(width: 20, height: 20)
-                        .background(.white.opacity(0.08), in: Circle())
-                }
-                .buttonStyle(.plain)
-            }
-        }
+        .padding(.horizontal, 4)
     }
 
     private var openedContent: some View {
@@ -280,8 +248,8 @@ struct IslandPanelView: View {
                 sessionList
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 12)
     }
 
     private var emptyState: some View {
@@ -300,7 +268,7 @@ struct IslandPanelView: View {
 
     private var sessionList: some View {
         ScrollView {
-            LazyVStack(spacing: 8) {
+            LazyVStack(spacing: 4) {
                 ForEach(model.surfacedSessions) { session in
                     IslandSessionRow(
                         session: session,
@@ -312,12 +280,23 @@ struct IslandPanelView: View {
                     )
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 2)
         }
         .scrollIndicators(.hidden)
     }
 
     // MARK: - Helpers
+
+    private var surfaceFill: some ShapeStyle {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(isOpened ? 0.085 : 0.03),
+                Color.black.opacity(0.98),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
 
     private func phaseColor(_ phase: SessionPhase) -> Color {
         switch phase {
@@ -345,27 +324,41 @@ private struct IslandSessionRow: View {
                 HStack(spacing: 10) {
                     Circle()
                         .fill(statusColor)
-                        .frame(width: 8, height: 8)
+                        .frame(width: 9, height: 9)
 
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: isSelected ? 4 : 2) {
                         Text(session.title)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(.white)
                             .lineLimit(1)
 
                         Text(session.spotlightPrimaryText)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .font(.system(size: 11.5, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.64))
                             .lineLimit(1)
+
+                        if isSelected, let secondaryText = session.spotlightSecondaryText {
+                            Text(secondaryText)
+                                .font(.system(size: 11))
+                                .foregroundStyle(.white.opacity(0.38))
+                                .lineLimit(1)
+                        }
                     }
 
                     Spacer(minLength: 8)
 
-                    HStack(spacing: 6) {
-                        if let tool = session.spotlightCurrentToolLabel {
-                            compactBadge(tool)
+                    VStack(alignment: .trailing, spacing: 8) {
+                        HStack(spacing: 6) {
+                            compactBadge(session.tool.displayName)
+                            if let terminalBadge = session.spotlightTerminalBadge {
+                                compactBadge(terminalBadge)
+                            }
+                            compactBadge(session.spotlightAgeBadge)
                         }
-                        compactBadge(session.spotlightStatusLabel)
+
+                        if isSelected {
+                            compactBadge(session.spotlightStatusLabel)
+                        }
                     }
                 }
             }
@@ -375,15 +368,23 @@ private struct IslandSessionRow: View {
                 actionRow
             }
         }
-        .padding(10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, isSelected ? 14 : 12)
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(isSelected ? Color.white.opacity(0.10) : Color.white.opacity(0.04))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(isSelected ? Color.white.opacity(0.11) : Color.white.opacity(0.015))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(isSelected ? .white.opacity(0.12) : .clear)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(isSelected ? .white.opacity(0.09) : .white.opacity(0.03))
         )
+        .overlay(
+            Rectangle()
+                .fill(Color.white.opacity(isSelected ? 0 : 0.03))
+                .frame(height: 1),
+            alignment: .bottom
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     @ViewBuilder
@@ -429,11 +430,11 @@ private struct IslandSessionRow: View {
 
     private func compactBadge(_ title: String) -> some View {
         Text(title)
-            .font(.system(size: 9, weight: .medium))
-            .foregroundStyle(.white.opacity(0.5))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 3)
-            .background(.white.opacity(0.06), in: Capsule())
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundStyle(.white.opacity(0.56))
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3.5)
+            .background(.white.opacity(0.055), in: Capsule())
     }
 
     private var statusColor: Color {
@@ -472,9 +473,22 @@ private struct VibeIslandIcon: View {
     var isAnimating: Bool = false
 
     var body: some View {
-        Image(systemName: "square.grid.2x2.fill")
-            .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(Color.mint.opacity(isAnimating ? 1.0 : 0.75))
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
+                iconBlock
+                iconBlock
+            }
+            HStack(spacing: 2) {
+                iconBlock
+                iconBlock
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private var iconBlock: some View {
+        RoundedRectangle(cornerRadius: 1.8, style: .continuous)
+            .fill(Color.mint.opacity(isAnimating ? 1.0 : 0.82))
     }
 }
 
@@ -502,6 +516,8 @@ private struct ClosedCountBadge: View {
             .font(.system(size: 12, weight: .semibold))
             .foregroundStyle(tint)
             .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(.white.opacity(0.05), in: Capsule())
     }
 }
 

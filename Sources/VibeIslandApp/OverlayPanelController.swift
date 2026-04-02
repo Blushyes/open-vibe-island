@@ -5,9 +5,9 @@ import SwiftUI
 @MainActor
 final class OverlayPanelController {
     private static let windowHeight: CGFloat = 750
-    private static let openedContentWidthPadding: CGFloat = 24
-    private static let openedContentHeight: CGFloat = 420
-    private static let openedContentBottomPadding: CGFloat = 12
+    private static let openedContentWidthPadding: CGFloat = 28
+    private static let openedContentHeight: CGFloat = 500
+    private static let openedContentBottomPadding: CGFloat = 14
 
     private var panel: NotchPanel?
     private var eventMonitors = NotchEventMonitors()
@@ -251,8 +251,8 @@ final class OverlayPanelController {
     }
 
     func openedPanelWidth(for screen: NSScreen?) -> CGFloat {
-        guard let screen else { return 480 }
-        return min(screen.frame.width * 0.4, 480)
+        guard let screen else { return 820 }
+        return min(max(screen.frame.width * 0.68, 760), screen.frame.width - 36)
     }
 
     func contentRect(for model: AppModel, in bounds: NSRect) -> NSRect? {

@@ -64,9 +64,9 @@ struct NotchShape: Shape {
 
 extension NotchShape {
     static let closedTopRadius: CGFloat = 6
-    static let closedBottomRadius: CGFloat = 14
-    static let openedTopRadius: CGFloat = 19
-    static let openedBottomRadius: CGFloat = 24
+    static let closedBottomRadius: CGFloat = 16
+    static let openedTopRadius: CGFloat = 22
+    static let openedBottomRadius: CGFloat = 36
 
     static var closed: NotchShape {
         NotchShape(topCornerRadius: closedTopRadius, bottomCornerRadius: closedBottomRadius)

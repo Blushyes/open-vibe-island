@@ -85,6 +85,24 @@ extension AgentSession {
     var spotlightTerminalBadge: String? {
         jumpTarget?.terminalApp
     }
+
+    var spotlightAgeBadge: String {
+        let age = max(0, Int(Date.now.timeIntervalSince(updatedAt)))
+
+        if age < 60 {
+            return "<1m"
+        }
+
+        if age < 3_600 {
+            return "\(max(1, age / 60))m"
+        }
+
+        if age < 86_400 {
+            return "\(max(1, age / 3_600))h"
+        }
+
+        return "\(max(1, age / 86_400))d"
+    }
 }
 
 private extension String {
