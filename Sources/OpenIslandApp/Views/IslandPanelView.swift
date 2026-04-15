@@ -1027,6 +1027,8 @@ private struct IslandSessionRow: View {
 
     @State private var isHighlighted = false
     @State private var isManuallyExpanded = false
+    @State private var isHoverExpanded = false
+    @State private var hoverExpandTask: Task<Void, Never>?
     @State private var replyText: String = ""
 
     var body: some View {
@@ -1158,6 +1160,12 @@ private struct IslandSessionRow: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 14)
             }
+
+            if isHoverExpanded, !isActionable {
+                hoverDetailBody
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 14)
+            }
         }
         .background(
             RoundedRectangle(cornerRadius: isActionable ? 24 : 22, style: .continuous)
@@ -1179,17 +1187,22 @@ private struct IslandSessionRow: View {
             },
             alignment: .bottom
         )
-        .modifier(ConditionalDrawingGroup(enabled: useDrawingGroup && !isActionable))
+        .modifier(ConditionalDrawingGroup(enabled: useDrawingGroup && !isActionable && !isHoverExpanded))
         .contentShape(RoundedRectangle(cornerRadius: isActionable ? 24 : 22, style: .continuous))
         .animation(.easeInOut(duration: 0.15), value: isHighlighted)
+        .animation(.easeInOut(duration: 0.2), value: isHoverExpanded)
         .onTapGesture(perform: handlePrimaryTap)
         .onHover { hovering in
             guard isInteractive else { return }
             isHighlighted = hovering
+            handleHoverDetailChange(hovering: hovering)
         }
         .onChange(of: isInteractive) { _, interactive in
             if !interactive {
                 isManuallyExpanded = false
+                hoverExpandTask?.cancel()
+                hoverExpandTask = nil
+                isHoverExpanded = false
             }
         }
     }
@@ -1482,6 +1495,83 @@ private struct IslandSessionRow: View {
         } else {
             onJump()
         }
+    }
+
+    // MARK: - Hover detail expansion
+
+    private var hasHoverDetailContent: Bool {
+        if let text = session.lastAssistantMessageText?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !text.isEmpty {
+            return true
+        }
+        return session.summary.trimmingCharacters(in: .whitespacesAndNewlines).count > 80
+    }
+
+    private func handleHoverDetailChange(hovering: Bool) {
+        guard !isActionable, hasHoverDetailContent else {
+            hoverExpandTask?.cancel()
+            hoverExpandTask = nil
+            if isHoverExpanded {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHoverExpanded = false
+                }
+            }
+            return
+        }
+
+        hoverExpandTask?.cancel()
+        hoverExpandTask = nil
+
+        if hovering {
+            hoverExpandTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHoverExpanded = true
+                }
+            }
+        } else {
+            hoverExpandTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHoverExpanded = false
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var hoverDetailBody: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(.white.opacity(0.06))
+                .frame(height: 1)
+
+            AutoHeightScrollView(maxHeight: 220) {
+                Markdown(hoverDetailText)
+                    .markdownTheme(.completionCard)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.045))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(.white.opacity(0.08))
+        )
+    }
+
+    private var hoverDetailText: String {
+        if let text = session.lastAssistantMessageText?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !text.isEmpty {
+            return text
+        }
+        return session.summary
     }
 
     private func compactBadge(
