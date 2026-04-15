@@ -1198,7 +1198,7 @@ private struct IslandSessionRow: View {
     }
 
     private var rowCornerRadius: CGFloat {
-        isActionable ? 24 : 14
+        isActionable ? 24 : 10
     }
 
     private var rowBackgroundColor: Color {
