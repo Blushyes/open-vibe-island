@@ -1168,27 +1168,17 @@ private struct IslandSessionRow: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: isActionable ? 24 : 22, style: .continuous)
-                .fill(isHighlighted ? Color.white.opacity(isActionable ? 0.06 : 0.05) : Color.black)
+            RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
+                .fill(rowBackgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: isActionable ? 24 : 22, style: .continuous)
-                .strokeBorder(actionableBorderColor)
+            RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous)
+                .strokeBorder(isActionable ? actionableBorderColor : .clear)
         )
         .compositingGroup()
-        .shadow(color: .black.opacity(0.24), radius: isHighlighted ? 8 : 0, y: isHighlighted ? 6 : 0)
-        .overlay(
-            Group {
-                if !isActionable {
-                    Rectangle()
-                        .fill(Color.white.opacity(isHighlighted ? 0 : 0.02))
-                        .frame(height: 1)
-                }
-            },
-            alignment: .bottom
-        )
+        .shadow(color: .black.opacity(0.24), radius: isActionable && isHighlighted ? 8 : 0, y: isActionable && isHighlighted ? 6 : 0)
         .modifier(ConditionalDrawingGroup(enabled: useDrawingGroup && !isActionable && !isHoverExpanded))
-        .contentShape(RoundedRectangle(cornerRadius: isActionable ? 24 : 22, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous))
         .animation(.easeInOut(duration: 0.15), value: isHighlighted)
         .animation(.easeInOut(duration: 0.2), value: isHoverExpanded)
         .onTapGesture(perform: handlePrimaryTap)
@@ -1205,6 +1195,17 @@ private struct IslandSessionRow: View {
                 isHoverExpanded = false
             }
         }
+    }
+
+    private var rowCornerRadius: CGFloat {
+        isActionable ? 24 : 14
+    }
+
+    private var rowBackgroundColor: Color {
+        if isActionable {
+            return isHighlighted ? Color.white.opacity(0.06) : .black
+        }
+        return isHighlighted ? Color.white.opacity(0.08) : .black
     }
 
     private var actionableBorderColor: Color {

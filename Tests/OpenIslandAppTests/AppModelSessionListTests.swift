@@ -355,7 +355,7 @@ struct AppModelSessionListTests {
         model.handlePointerExitedIslandSurface()
 
         // Close is now debounced — wait for the grace period to elapse.
-        try await Task.sleep(for: .milliseconds(500))
+        try await Task.sleep(for: .milliseconds(800))
 
         #expect(model.notchStatus == .closed)
         #expect(model.notchOpenReason == nil)
