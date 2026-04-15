@@ -344,7 +344,7 @@ struct AppModelSessionListTests {
     }
 
     @Test
-    func hoverOpenedSessionListAutoCollapsesOnPointerExit() {
+    func hoverOpenedSessionListAutoCollapsesOnPointerExit() async throws {
         let model = AppModel()
         model.notchStatus = .opened
         model.notchOpenReason = .hover
@@ -353,6 +353,9 @@ struct AppModelSessionListTests {
         #expect(model.shouldAutoCollapseOnMouseLeave)
 
         model.handlePointerExitedIslandSurface()
+
+        // Close is now debounced — wait for the grace period to elapse.
+        try await Task.sleep(for: .milliseconds(500))
 
         #expect(model.notchStatus == .closed)
         #expect(model.notchOpenReason == nil)
@@ -407,7 +410,7 @@ struct AppModelSessionListTests {
     }
 
     @Test
-    func completionNotificationRequiresSurfaceEntryBeforePointerExitCollapse() {
+    func completionNotificationRequiresSurfaceEntryBeforePointerExitCollapse() async throws {
         let model = AppModel()
         // Add a completed session so autoDismissesWhenPresentedAsNotification can check phase
         model.applyTrackedEvent(
@@ -434,13 +437,17 @@ struct AppModelSessionListTests {
 
         #expect(model.shouldAutoCollapseOnMouseLeave)
 
+        // Without prior surface entry, pointer exit should not close (even after grace).
         model.handlePointerExitedIslandSurface()
+        try await Task.sleep(for: .milliseconds(500))
 
         #expect(model.notchStatus == .opened)
         #expect(model.notchOpenReason == .notification)
 
+        // After entering and exiting, it should close after the grace period.
         model.notePointerInsideIslandSurface()
         model.handlePointerExitedIslandSurface()
+        try await Task.sleep(for: .milliseconds(500))
 
         #expect(model.notchStatus == .closed)
         #expect(model.notchOpenReason == nil)

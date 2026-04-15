@@ -8,6 +8,10 @@ import OpenIslandCore
 final class OverlayUICoordinator {
 
     private static let notificationSurfaceAutoCollapseDelay: TimeInterval = 10
+    /// Minimum time the overlay stays open before pointer-exit can close it.
+    private static let minimumOpenDuration: TimeInterval = 0.6
+    /// Grace period after pointer exits before actually closing.
+    private static let pointerExitGracePeriod: TimeInterval = 0.3
 
     var notchStatus: NotchStatus = .closed
     var notchOpenReason: NotchOpenReason?
@@ -57,6 +61,12 @@ final class OverlayUICoordinator {
     @ObservationIgnored
     private var autoCollapseSurfaceHasBeenEntered = false
 
+    @ObservationIgnored
+    private var overlayOpenedAt: Date?
+
+    @ObservationIgnored
+    private var pointerExitCloseTask: Task<Void, Never>?
+
     /// Kept for API compatibility; always false now that the window never
     /// resizes and close transitions are pure SwiftUI.
     var isCloseTransitionPending: Bool { false }
@@ -98,6 +108,8 @@ final class OverlayUICoordinator {
     }
 
     func notchOpen(reason: NotchOpenReason, surface: IslandSurface = .sessionList()) {
+        pointerExitCloseTask?.cancel()
+        pointerExitCloseTask = nil
         transitionOverlay(
             to: .opened,
             reason: reason,
@@ -106,6 +118,7 @@ final class OverlayUICoordinator {
             beforeTransition: nil,
             afterStateChange: { [weak self] in
                 guard let self else { return }
+                self.overlayOpenedAt = Date()
                 self.autoCollapseSurfaceHasBeenEntered = false
                 self.updateNotificationAutoCollapse()
             },
@@ -117,6 +130,8 @@ final class OverlayUICoordinator {
     }
 
     func notchClose() {
+        pointerExitCloseTask?.cancel()
+        pointerExitCloseTask = nil
         transitionOverlay(
             to: .closed,
             reason: nil,
@@ -127,6 +142,7 @@ final class OverlayUICoordinator {
                 self?.notificationAutoCollapseTask = nil
             },
             afterStateChange: { [weak self] in
+                self?.overlayOpenedAt = nil
                 self?.autoCollapseSurfaceHasBeenEntered = false
                 self?.appModel?.measuredNotificationContentHeight = 0
             }
@@ -280,6 +296,8 @@ final class OverlayUICoordinator {
         }
 
         autoCollapseSurfaceHasBeenEntered = true
+        pointerExitCloseTask?.cancel()
+        pointerExitCloseTask = nil
         notificationAutoCollapseTask?.cancel()
         notificationAutoCollapseTask = nil
     }
@@ -294,7 +312,32 @@ final class OverlayUICoordinator {
             return
         }
 
-        notchClose()
+        // Already scheduled — let the existing task handle it.
+        guard pointerExitCloseTask == nil else {
+            return
+        }
+
+        // Ensure the overlay stays visible for at least `minimumOpenDuration`
+        // after opening, then add a short grace period so brief pointer exits
+        // (e.g. mouse moving while the overlay appears) don't cause a flash.
+        let elapsed = -(overlayOpenedAt ?? .distantPast).timeIntervalSinceNow
+        let remainingProtection = max(0, Self.minimumOpenDuration - elapsed)
+        let delay = remainingProtection + Self.pointerExitGracePeriod
+
+        pointerExitCloseTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+            guard let self,
+                  self.notchStatus == .opened,
+                  self.shouldAutoCollapseOnMouseLeave else {
+                return
+            }
+            self.pointerExitCloseTask = nil
+            self.notchClose()
+        }
     }
 
     // MARK: - Notification surfaces
