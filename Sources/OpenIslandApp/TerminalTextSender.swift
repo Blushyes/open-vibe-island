@@ -15,7 +15,6 @@ struct TerminalTextSender {
 
     static func canReply(to session: AgentSession, enabled: Bool) -> Bool {
         guard enabled else { return false }
-        guard session.phase == .completed else { return false }
         guard let target = session.jumpTarget else { return false }
 
         // tmux sessions: any terminal can receive send-keys.
