@@ -280,6 +280,8 @@ final class OverlayUICoordinator {
         }
 
         autoCollapseSurfaceHasBeenEntered = true
+        notificationAutoCollapseTask?.cancel()
+        notificationAutoCollapseTask = nil
     }
 
     func handlePointerExitedIslandSurface() {
