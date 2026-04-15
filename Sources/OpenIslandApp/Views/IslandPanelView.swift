@@ -1555,6 +1555,14 @@ private struct IslandSessionRow: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
             }
+
+            if onReply != nil {
+                Rectangle()
+                    .fill(.white.opacity(0.06))
+                    .frame(height: 1)
+
+                hoverReplyInput
+            }
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -1564,6 +1572,31 @@ private struct IslandSessionRow: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(.white.opacity(0.08))
         )
+    }
+
+    @ViewBuilder
+    private var hoverReplyInput: some View {
+        HStack(spacing: 8) {
+            ReplyTextField(
+                placeholder: lang.t("completion.replyPlaceholder"),
+                text: $replyText,
+                onSubmit: { submitReply() }
+            )
+            .frame(height: 32)
+
+            Button {
+                submitReply()
+            } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(replyText.trimmingCharacters(in: .whitespaces).isEmpty
+                        ? .white.opacity(0.2) : .white.opacity(0.9))
+            }
+            .buttonStyle(.plain)
+            .disabled(replyText.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
     }
 
     private var hoverDetailText: String {
