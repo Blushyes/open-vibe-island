@@ -9,9 +9,10 @@ final class OverlayUICoordinator {
 
     private static let notificationSurfaceAutoCollapseDelay: TimeInterval = 10
     /// Minimum time the overlay stays open before pointer-exit can close it.
+    /// Protects against the pointer happening to be moving as the overlay
+    /// appears — without this, a mouse mid-flight can open and instantly
+    /// close the panel.
     private static let minimumOpenDuration: TimeInterval = 0.6
-    /// Grace period after pointer exits before actually closing.
-    private static let pointerExitGracePeriod: TimeInterval = 0.3
 
     var notchStatus: NotchStatus = .closed
     var notchOpenReason: NotchOpenReason?
@@ -317,16 +318,21 @@ final class OverlayUICoordinator {
             return
         }
 
-        // Ensure the overlay stays visible for at least `minimumOpenDuration`
-        // after opening, then add a short grace period so brief pointer exits
-        // (e.g. mouse moving while the overlay appears) don't cause a flash.
+        // Only protect the brief window right after opening: if the pointer
+        // was already mid-flight when the overlay appeared, wait until
+        // `minimumOpenDuration` elapses so the panel doesn't flash. Past
+        // that window, close immediately to keep the interaction snappy.
         let elapsed = -(overlayOpenedAt ?? .distantPast).timeIntervalSinceNow
-        let remainingProtection = max(0, Self.minimumOpenDuration - elapsed)
-        let delay = remainingProtection + Self.pointerExitGracePeriod
+        let remainingProtection = Self.minimumOpenDuration - elapsed
+
+        guard remainingProtection > 0 else {
+            notchClose()
+            return
+        }
 
         pointerExitCloseTask = Task { @MainActor [weak self] in
             do {
-                try await Task.sleep(for: .seconds(delay))
+                try await Task.sleep(for: .seconds(remainingProtection))
             } catch {
                 return
             }
