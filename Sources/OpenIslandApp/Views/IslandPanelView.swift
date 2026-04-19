@@ -1179,7 +1179,6 @@ private struct IslandSessionRow: View {
         .shadow(color: .black.opacity(0.24), radius: isActionable && isHighlighted ? 8 : 0, y: isActionable && isHighlighted ? 6 : 0)
         .modifier(ConditionalDrawingGroup(enabled: useDrawingGroup && !isActionable && !isHoverExpanded))
         .contentShape(RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous))
-        .animation(.easeInOut(duration: 0.2), value: isHoverExpanded)
         .onTapGesture(perform: handlePrimaryTap)
         .onHover { hovering in
             guard isInteractive else { return }
@@ -1512,9 +1511,7 @@ private struct IslandSessionRow: View {
             hoverExpandTask?.cancel()
             hoverExpandTask = nil
             if isHoverExpanded {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isHoverExpanded = false
-                }
+                isHoverExpanded = false
             }
             return
         }
@@ -1526,17 +1523,13 @@ private struct IslandSessionRow: View {
             hoverExpandTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
                 guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isHoverExpanded = true
-                }
+                isHoverExpanded = true
             }
         } else {
             hoverExpandTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isHoverExpanded = false
-                }
+                isHoverExpanded = false
             }
         }
     }
