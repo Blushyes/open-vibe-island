@@ -84,18 +84,6 @@ private struct ClosedPresenceKey: Equatable {
     var width: CGFloat
 }
 
-private struct ConditionalDrawingGroup: ViewModifier {
-    let enabled: Bool
-
-    func body(content: Content) -> some View {
-        if enabled {
-            content.drawingGroup()
-        } else {
-            content
-        }
-    }
-}
-
 // MARK: - Main island view
 
 struct IslandPanelView: View {
@@ -558,7 +546,6 @@ struct IslandPanelView: View {
                     session: session,
                     referenceDate: context.date,
                     isActionable: true,
-                    useDrawingGroup: model.notchStatus == .opened,
                     isInteractive: model.notchStatus == .opened,
                     lang: model.lang,
                     onApprove: { model.approvePermission(for: session.id, action: $0) },
@@ -587,7 +574,6 @@ struct IslandPanelView: View {
                         session: session,
                         referenceDate: context.date,
                         isActionable: session.phase.requiresAttention || session.id == actionableSessionID,
-                        useDrawingGroup: model.notchStatus == .opened,
                         isInteractive: model.notchStatus == .opened,
                         lang: model.lang,
                         onApprove: { model.approvePermission(for: session.id, action: $0) },
@@ -1016,7 +1002,6 @@ private struct IslandSessionRow: View {
     let session: AgentSession
     let referenceDate: Date
     var isActionable: Bool = false
-    var useDrawingGroup: Bool = true
     var isInteractive: Bool = true
     var lang: LanguageManager = .shared
     var onApprove: ((ApprovalAction) -> Void)?
@@ -1177,8 +1162,8 @@ private struct IslandSessionRow: View {
         )
         .compositingGroup()
         .shadow(color: .black.opacity(0.24), radius: isActionable && isHighlighted ? 8 : 0, y: isActionable && isHighlighted ? 6 : 0)
-        .modifier(ConditionalDrawingGroup(enabled: useDrawingGroup && !isActionable && !isHoverExpanded))
         .contentShape(RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous))
+        .animation(.easeInOut(duration: 0.2), value: isHoverExpanded)
         .onTapGesture(perform: handlePrimaryTap)
         .onHover { hovering in
             guard isInteractive else { return }
@@ -1511,7 +1496,9 @@ private struct IslandSessionRow: View {
             hoverExpandTask?.cancel()
             hoverExpandTask = nil
             if isHoverExpanded {
-                isHoverExpanded = false
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHoverExpanded = false
+                }
             }
             return
         }
@@ -1523,13 +1510,17 @@ private struct IslandSessionRow: View {
             hoverExpandTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(400))
                 guard !Task.isCancelled else { return }
-                isHoverExpanded = true
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHoverExpanded = true
+                }
             }
         } else {
             hoverExpandTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(100))
                 guard !Task.isCancelled else { return }
-                isHoverExpanded = false
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isHoverExpanded = false
+                }
             }
         }
     }
